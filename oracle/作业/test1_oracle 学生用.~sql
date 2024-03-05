@@ -1,0 +1,92 @@
+
+--S (S#,SN,SD,SA)   S#,SN,SD,SA 分别代表学号、学员姓名、所属单位、学员年龄
+create table S(
+  S# int primary key,
+  SN varchar2(30) not null ,
+  SD varchar2(30) not null,
+  SA int not null
+)SEGMENT CREATION IMMEDIATE;
+create sequence seq_s_s#;
+DROP SEQUENCE seq_s_s#;
+--C (C#,CN )        C#,CN       分别代表课程编号、课程名称
+create table C(
+  C# varchar2(30) primary key,
+  CN varchar2(30) not null 
+);
+--SC ( S#,C#,G )    S#,C#,G     分别代表学号、所选修的课程编号、学习成绩 
+create table SC(
+  S# int ,
+  C# varchar2(30) not null ,
+  G int not null
+);
+
+drop table S;
+drop table SC;
+drop table C;
+
+alter table sc
+   add constraint FK_SC_S# 
+        foreign key(S#) references S(S#);
+alter table sc
+   add constraint FK_C_C# 
+        foreign key(C#) references C(C#);
+
+insert into S values(seq_s_s#.nextval,'罗路','计算机与信息科学学院',23);
+insert into S values(seq_s_s#.nextval,'薛迪','计算机与信息科学学院',24);
+insert into S values(seq_s_s#.nextval,'李水平','计算机与信息科学学院',25);
+insert into S values(seq_s_s#.nextval,'欧阳进夫','计算机与信息科学学院',26);
+insert into S values(seq_s_s#.nextval,'屌丝','计算机与信息科学学院',27);
+insert into S values(seq_s_s#.nextval,'宅男','计算机与信息科学学院',28);
+
+select * from S;
+
+insert into C values('C1','税收基础');
+insert into C values('C2','管理基础');
+insert into C values('C3','调动基础');
+insert into C values('C4','薪水管理');
+insert into C values('C5','业务管理');
+insert into C values('C6','发展规划');
+insert into C values('C7','薪资总结');
+insert into C values('C8','人员管理');
+
+select * from C;
+
+insert into SC values(1,'C1',90);
+insert into SC values(2,'C1',85);
+insert into SC values(1,'C2',91);
+insert into SC values(1,'C3',92);
+insert into SC values(1,'C4',95);
+insert into SC values(1,'C5',96);
+insert into SC values(1,'C6',87);
+insert into SC values(1,'C7',67);
+insert into SC values(1,'C8',57);
+insert into SC values(2,'C2',34);
+insert into SC values(3,'C2',78);
+insert into SC values(4,'C5',98);
+
+select * from sc;
+
+--1. 使用标准SQL嵌套语句查询选修课程名称为’税收基础’的学员学号和姓名 
+select C# from C where CN='税收基础';
+select distinct(S#) from SC,C where SC.C#=C.C#;
+select S.S#,S.SN from S,SC,C where C.CN='税收基础' AND SC.C#=C.C# AND S.S#=SC.S#;
+select S.S#,S.SN from S,SC where SC.C#=(select C# from C where CN='税收基础') AND S.S#=SC.S#;
+
+--2. 使用标准SQL嵌套语句查询选修课程编号为’C2’的学员姓名和所属单位
+SELECT SN,SD FROM S WHERE S# IN (SELECT S# FROM SC WHERE C# = 'C2');
+
+
+--3. 使用标准SQL嵌套语句查询不选修课程编号为’C5’的学员姓名和所属单位
+SELECT SN,SD FROM S WHERE S# NOT IN (SELECT S# FROM SC WHERE C# = 'C5');
+
+--4. 使用标准SQL嵌套语句查询选修全部课程的学员姓名和所属单位
+SELECT SN,SD FROM S WHERE S# = ALL(SELECT S# FROM SC);
+SELECT S.SN,S.SD FROM S,(select S#,COUNT(SC.C#) 学科数目 FROM SC,C WHERE SC.C#=C.C# GROUP BY S#) S1 WHERE 学科数目=(SELECT COUNT(C#) FROM C) AND S.S#=S1.S#;
+
+--5. 查询选修了课程的学员人数
+SELECT COUNT(S#) FROM SC WHERE C# IS NOT NULL;
+select COUNT(SC.S#) FROM SC,S WHERE SC.S# = S.S# AND C# IS NOT NULL;
+
+--6. 查询选修课程超过5门的学员学号和所属单位
+select S.S#,S.SD FROM S,(SELECT S#,COUNT(S#) 数目 FROM SC GROUP BY S# HAVING COUNT(S#) > 5) S1 WHERE S.S#=S1.S#;
+
